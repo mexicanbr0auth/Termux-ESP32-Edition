@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 dist/
 build/
+artifacts/
+*.apk
 *.bin
 *.elf
 *.map
