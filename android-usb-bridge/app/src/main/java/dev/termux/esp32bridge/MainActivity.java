@@ -107,6 +107,13 @@ public final class MainActivity extends Activity {
     }
 
     private void openDevice(UsbDevice device) {
+        // Avoid opening the same USB device twice when permission callbacks and
+        // repeated taps overlap. Duplicate opens caused EADDRINUSE on TCP port 3333.
+        if (serialPort != null && serverSocket != null && !serverSocket.isClosed()) {
+            log("Bridge is already connected; keeping the existing USB/TCP session.");
+            return;
+        }
+        stopBridge("Resetting previous bridge session before reconnecting.");
         try {
             UsbSerialDriver selected = null;
             for (UsbSerialDriver driver : UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)) {
@@ -118,6 +125,10 @@ public final class MainActivity extends Activity {
             serialPort = selected.getPorts().get(0);
             serialPort.open(usbConnection);
             serialPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+            // CDC-ACM firmware may not route serial data until DTR is asserted.
+            // Keep this best-effort because some USB-UART chips do not implement it.
+            try { serialPort.setDTR(true); }
+            catch (IOException e) { log("DTR not supported by this USB serial device: " + e.getMessage()); }
             ioManager = new SerialInputOutputManager(serialPort, new SerialInputOutputManager.Listener() {
                 @Override public void onNewData(byte[] data) {
                     Socket active = client;
