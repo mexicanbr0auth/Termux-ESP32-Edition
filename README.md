@@ -1,30 +1,34 @@
 # Termux ESP32 Edition
 
-A mobile-first toolkit for working with ESP32 boards from Termux on Android. This repository currently provides diagnostic and workflow scripts; it does not yet contain a modified Termux APK.
+A mobile-first toolkit for working with ESP32 boards from Termux on Android. This repository includes command-line diagnostics and an experimental Android USB-serial bridge. It is not a modified Termux APK.
 
-## Goals
-- Diagnose Termux/Android USB-host and serial-port visibility.
-- Install common ESP32 Python tools (esptool, mpremote).
-- Provide a safer command wrapper for diagnostics and flashing.
-- Run shell and Python tests in GitHub Actions.
-- Track future integration work for the Termux Android app.
+## Components
+- Termux scripts for diagnostics and MicroPython firmware flashing.
+- Android companion app using Android USB Host permissions and USB serial drivers.
+- GitHub Actions for shell/Python tests and Android APK builds.
 
 ## Quick start
     bash scripts/install-termux.sh
     bash scripts/esp32.sh doctor
     bash scripts/esp32.sh ports
 
-## USB limitations on Android
-A USB device connected through OTG may be visible to Android but unavailable as a serial device inside Termux. Android USB host permissions and a USB-serial driver/userspace implementation may be required. This toolkit reports what it can observe; it cannot bypass Android permissions or kernel/device restrictions.
+## USB bridge on Android
+Build the companion app with the GitHub Actions workflow named Build Android USB bridge. Download the termux-esp32-usb-bridge-debug artifact from the successful workflow run, install it on the phone, connect the ESP32 via a data-capable OTG adapter, approve USB access, and keep the app open.
 
-## Flashing
-Flashing erases or overwrites firmware. Check the board, port and firmware file before running:
-    bash scripts/esp32.sh flash-mpy /path/to/firmware.bin /dev/ttyUSB0
-Only run flashing when the port is correct and you are prepared to replace the existing firmware.
+In Termux, test the bridge:
+    bash scripts/esp32.sh bridge-test
+
+The bridge listens only on 127.0.0.1:3333. It uses Android's USB Host API to access USB serial devices that are not exposed as /dev/ttyUSB0 inside Termux.
+
+## Flashing MicroPython
+The Android bridge currently uses fixed 115200 baud and does not forward DTR/RTS. Manually enter ESP32-C3 download mode first (hold BOOT, tap RESET, release BOOT), then:
+    bash scripts/esp32.sh flash-mpy /path/to/ESP32_GENERIC_C3.bin socket://127.0.0.1:3333
+
+Flashing erases existing firmware. Type FLASH only after checking the firmware file and board. A successful build is not proof of physical USB compatibility; test with the actual phone, OTG adapter and board.
+
+## Limits and next steps
+The companion bridge is experimental and currently selects the first supported USB-serial device. It needs physical-device validation and additional work for serial baud selection, DTR/RTS reset control, multi-device selection, long-running foreground service behavior, and support for all ESP32 variants. Some boards may expose native USB CDC, while others use CP210x, CH340, FTDI or other USB-UART bridges.
 
 ## Tests
-    bash -n scripts/*.sh
+    bash -n scripts/install-termux.sh scripts/esp32-doctor.sh scripts/esp32.sh
     python -m unittest discover -s tests -v
-
-## Status
-Starter implementation. CI tests the scripts on GitHub-hosted Linux; real ESP32 USB/OTG tests must be performed on physical Android hardware.

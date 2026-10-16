@@ -19,6 +19,7 @@ class ScriptTests(unittest.TestCase):
         result = self.run_cli("help")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("doctor", result.stdout)
+        self.assertIn("bridge-test", result.stdout)
 
     def test_unknown_command_fails(self):
         result = self.run_cli("not-a-command")
