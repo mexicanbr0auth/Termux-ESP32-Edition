@@ -1,0 +1,23 @@
+name: Test toolkit
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Shell syntax
+        run: bash -n scripts/install-termux.sh scripts/esp32-doctor.sh scripts/esp32.sh
+      - name: ShellCheck
+        run: shellcheck scripts/install-termux.sh scripts/esp32-doctor.sh scripts/esp32.sh
+      - name: Python tests
+        run: python -m unittest discover -s tests -v
