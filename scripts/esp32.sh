@@ -24,10 +24,11 @@ case "$cmd" in
     port="$3"
     [[ -f "$firmware" ]] || { echo "Firmware not found: $firmware" >&2; exit 2; }
     [[ -n "$port" ]] || { echo "Serial port must not be empty" >&2; exit 2; }
-    echo "About to erase flash and write: $firmware -> $port"
+    echo "WARNING: this erases the board and writes firmware: $firmware -> $port"
     read -r -p 'Type FLASH to confirm: ' confirm
     [[ "$confirm" == FLASH ]] || { echo "Cancelled."; exit 1; }
-    exec python -m esptool --port "$port" erase-flash
+    python -m esptool --port "$port" erase-flash
+    exec python -m esptool --port "$port" write-flash 0x0 "$firmware"
     ;;
   help|-h|--help) usage ;;
   *) echo "Unknown command: $cmd" >&2; usage >&2; exit 2 ;;
